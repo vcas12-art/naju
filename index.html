@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나주학생독립운동 탐방 (저학년용)</title>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        :root { --primary: #e67e22; --secondary: #2c3e50; --bg: #fef9e7; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+        body { background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .quiz-card { background: white; width: 100%; max-width: 580px; padding: 35px 30px; border-radius: 24px; box-shadow: 0 15px 30px rgba(0,0,0,0.1); border: 4px solid #f9e79f; position: relative; overflow: hidden; }
+        .flag-banner { height: 8px; width: 100%; background: linear-gradient(90deg, #cd2e3a 50%, #0047a0 50%); position: absolute; top: 0; left: 0; }
+        .header { text-align: center; margin-bottom: 20px; margin-top: 10px; }
+        .header h1 { font-size: 1.6rem; color: var(--secondary); font-weight: 800; }
+        .header p { color: #7f8c8d; font-size: 0.95rem; margin-top: 6px; }
+        .flag-main-icon { text-align: center; margin: 15px 0 20px 0; }
+        .flag-main-icon img { width: 110px; height: auto; }
+        .input-group { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+        input[type="text"] { padding: 15px; border: 2px solid #f5b041; border-radius: 12px; font-size: 1rem; outline: none; background: #fffde7; }
+        .btn-main { padding: 16px; background: #e67e22; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 1.05rem; }
+        .step-badge { display: inline-block; background: #fef5e7; color: #d35400; padding: 6px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; border: 1px solid #edbb99; margin-bottom: 12px; }
+        .question-card-wrapper { background: #fffde7; border: 2px solid #f9e79f; border-radius: 16px; padding: 25px 20px; margin-bottom: 20px; }
+        .question-box { font-size: 1.15rem; line-height: 1.65; color: #2d3748; text-align: center; font-weight: 600; }
+        .blank { color: #d35400; font-weight: 900; border-bottom: 3px solid #d35400; padding: 0 6px; }
+        .progress-bar { height: 10px; background: #fec89a; border-radius: 5px; margin-bottom: 20px; overflow: hidden; }
+        .progress { height: 100%; background: #e67e22; width: 0%; transition: 0.4s ease; }
+        .hidden { display: none; }
+        .btn-send { background: #27ae60; margin-top: 15px; width: 100%; font-size: 1.1rem; padding: 16px; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<div class="quiz-card">
+    <div class="flag-banner"></div>
+
+    <div id="login-screen">
+        <div class="header">
+            <h1>🌱 나주학생독립운동 탐방 (1~2학년)</h1>
+            <p>쉬운 퀴즈를 풀며 역사를 배워요!</p>
+        </div>
+        <div class="flag-main-icon">
+            <img src="https://cdn-icons-png.flaticon.com/512/197/197582.png" alt="태극기">
+        </div>
+        <div class="input-group">
+            <input type="text" id="room-code" placeholder="🔑 입장 코드 입력 (1000)">
+            <input type="text" id="student-name" placeholder="👤 이름 입력 (예: 홍길동)">
+            <button class="btn-main" onclick="startQuiz()">탐방 시작하기 🚀</button>
+        </div>
+    </div>
+
+    <div id="quiz-screen" class="hidden">
+        <div class="header" style="margin-bottom: 10px;">
+            <div class="step-badge">
+                <span>🏛️ 나주학생독립기념관</span> | <span>🇰🇷 문제 <span id="step-num">1</span>/14</span>
+            </div>
+            <h1 id="user-info-display" style="font-size: 1.3rem;"></h1>
+        </div>
+        <div class="progress-bar"><div class="progress" id="progress"></div></div>
+        <div class="question-card-wrapper">
+            <div class="question-box" id="question-box"></div>
+        </div>
+        <form onsubmit="handleSubmit(event)">
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="answer-input" placeholder="정답을 입력하세요" autocomplete="off" style="flex:1;">
+                <button type="submit" class="btn-main" style="width: 90px; padding: 0;">제출</button>
+            </div>
+        </form>
+        <p id="msg" style="text-align:center; margin-top:15px; font-weight:bold; font-size: 1.05rem;"></p>
+    </div>
+
+    <div id="result-screen" class="hidden" style="text-align:center; padding:10px 0;">
+        <img src="https://cdn-icons-png.flaticon.com/512/197/197582.png" style="width: 90px; height: auto; margin-bottom: 15px;" alt="태극기">
+        <h2 style="color:var(--secondary); font-size: 1.7rem; margin-bottom: 10px;">🎉 탐방 성공!</h2>
+        <p style="color:#d35400; font-size:1.15rem; font-weight:bold; line-height:1.6; margin-bottom:20px;">
+            축하합니다!<br>멋진 <b>새싹 역사 어린이</b>가 되었어요!
+        </p>
+        <button class="btn-send" id="send-btn" onclick="sendToTeacher()">📤 선생님에게 결과 보내기</button>
+        <p id="send-msg" style="margin-top:15px; font-weight:bold; color:#27ae60;"></p>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyD8YLm0dP67l8m99StfCxriueyJEhlyBpk",
+        authDomain: "najurisua.firebaseapp.com",
+        databaseURL: "https://najurisua-default-rtdb.firebaseio.com",
+        projectId: "najurisua",
+        storageBucket: "najurisua.firebasestorage.app",
+        messagingSenderId: "19829249054",
+        appId: "1:19829249054:web:9bcb211068a9c9bb81ca0f",
+        measurementId: "G-2WMMS89R6X"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const quizData = [
+        { q: "우리나라를 상징하는 국기의 이름은 [ <span class='blank'>?</span> ]입니다.", a: ["태극기"] },
+        { q: "나주 학생들이 독립 운동을 위해 싸운 대상은 [ <span class='blank'>?</span> ]입니다.", a: ["일본", "일제"] },
+        { q: "학생들이 학교에 가기 위해 탔던 탈것은 [ <span class='blank'>?</span> ]입니다.", a: ["기차", "열차", "통학열차"] },
+        { q: "학생들이 일본에 맞서 만세를 부르며 일어난 장소는 [ <span class='blank'>?</span> ]역입니다.", a: ["나주", "나주역"] },
+        { q: "일본 학생들이 한국 여학생을 놀려서 싸움이 일어난 운동은 [ <span class='blank'>?</span> ]운동입니다.", a: ["학생독립운동", "학생운동"] },
+        { q: "나라의 독립을 위해 용감하게 싸운 사람들을 [ <span class='blank'>?</span> ]운동가라고 합니다.", a: ["독립", "독립운동가"] },
+        { q: "여학생을 희롱하는 일본 학생을 혼내준 남학생의 이름은 박준[ <span class='blank'>?</span> ]입니다.", a: ["채", "박준채"] },
+        { q: "1929년 11월 3일에 일어난 운동을 [ <span class='blank'>?</span> ]학생독립운동이라고 합니다.", a: ["광주", "나주"] },
+        { q: "빼앗긴 나라를 되찾기 위해 만세를 부르던 마음을 [ <span class='blank'>?</span> ] 정신이라고 합니다.", a: ["독립", "항일"] },
+        { q: "일본인 학생들의 나쁜 행동에 화가 난 한국 학생들이 다툰 장소는 [ <span class='blank'>?</span> ] 안이었습니다.", a: ["기차", "열차", "통학열차"] },
+        { q: "시험을 거부하며 나라를 위해 싸운 일을 백지[ <span class='blank'>?</span> ]이라고 합니다.", a: ["동맹"] },
+        { q: "옛 나주역 옆에 당시 역사를 기억하기 위해 세운 곳은 나주학생독립[ <span class='blank'>?</span> ]입니다.", a: ["기념관"] },
+        { q: "우리가 살고 있는 소중한 우리 나라의 이름은 [ <span class='blank'>?</span> ]입니다.", a: ["대한민국", "한국"] },
+        { q: "나주 학생들의 용기 있는 정신은 지금도 우리 가슴속에 남아 있습니다. 우리는 누구일까요? 바로 [ <span class='blank'>?</span> ]입니다.", a: ["학생", "어린이"] }
+    ];
+
+    let studentName = "", currentStep = 0;
+
+    function startQuiz() {
+        const roomCode = document.getElementById('room-code').value.trim();
+        studentName = document.getElementById('student-name').value.trim();
+        if (roomCode !== "1000") { alert("입장 코드가 올바르지 않습니다. (1000)"); return; }
+        if (!studentName) { alert("이름을 입력해 주세요."); return; }
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        document.getElementById('user-info-display').innerText = `어린이: ${studentName}`;
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        document.getElementById('step-num').innerText = currentStep + 1;
+        document.getElementById('question-box').innerHTML = quizData[currentStep].q;
+        document.getElementById('progress').style.width = `${((currentStep + 1) / quizData.length) * 100}%`;
+        document.getElementById('answer-input').value = "";
+        document.getElementById('msg').innerText = "";
+    }
+
+    function handleSubmit(e) {
+        e.preventDefault();
+        const userInput = document.getElementById('answer-input').value.trim().replace(/\s/g, "");
+        const validAnswers = quizData[currentStep].a.map(ans => ans.replace(/\s/g, ""));
+        if (validAnswers.includes(userInput)) {
+            document.getElementById('msg').innerHTML = "<span style='color:#27ae60;'>⭕ 정답입니다! 참 잘했어요!</span>";
+            currentStep++;
+            setTimeout(() => {
+                if (currentStep < quizData.length) { loadQuestion(); } 
+                else {
+                    document.getElementById('quiz-screen').classList.add('hidden');
+                    document.getElementById('result-screen').classList.remove('hidden');
+                }
+            }, 600);
+        } else {
+            document.getElementById('msg').innerHTML = "<span style='color:#e74c3c;'>❌ 다시 생각해보세요!</span>";
+        }
+    }
+
+    function sendToTeacher() {
+        const now = new Date();
+        const timeString = `${now.getHours()}시 ${now.getMinutes()}분 ${now.getSeconds()}초`;
+        db.ref(`submissions/${studentName}`).set({
+            name: `${studentName} (저학년)`,
+            status: "완료 (새싹 역사 어린이)",
+            submittedAt: timeString
+        }).then(() => {
+            document.getElementById('send-msg').innerText = "✅ 성공적으로 선생님께 전송되었어요!";
+            document.getElementById('send-btn').disabled = true;
+            document.getElementById('send-btn').style.background = "#95a5a6";
+        });
+    }
+</script>
+</body>
+</html>
